@@ -22,9 +22,10 @@ jobs:
 
       - name: 🏗️ Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}:latest .
+          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/docker-qbittorrent-trackers-injector:latest
+          docker build -t $IMAGE_NAME .
 
       - name: 📤 Push Docker image
         run: |
-          docker push ghcr.io/${{ github.repository }}:latest
+          docker push ghcr.io/${{ github.repository_owner }}/docker-qbittorrent-trackers-injector:latest
 
