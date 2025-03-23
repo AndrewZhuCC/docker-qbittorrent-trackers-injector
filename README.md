@@ -1,7 +1,5 @@
 # qBittorrent Trackers Updater – Dockerized Service
 
-![Docker Image Size](https://img.shields.io/docker/image-size/ghcr.io/greatnewhope/qbittorrent-trackers-updater/latest?logo=docker&style=flat-square)
-![GitHub Repo](https://img.shields.io/badge/repo-greatnewhope%2Fdocker--qbittorrent--trackers--injector-blue?logo=github&style=flat-square)
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/greatnewhope/docker-qbittorrent-trackers-injector/publish.yml?branch=main&label=build&style=flat-square)
 ![GHCR](https://img.shields.io/badge/GHCR-qbittorrent--trackers--updater-blue?logo=github&style=flat-square)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)
