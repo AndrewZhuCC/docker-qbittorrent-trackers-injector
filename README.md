@@ -29,7 +29,7 @@ This container **actively updates existing torrents** using the qBittorrent API 
 ```yaml
 services:
   qbittorrent_trackers_updater:
-    image: ghcr.io/greatnewhope/docker-qbittorrent-trackers-injector:latest
+    image: ghcr.io/greatnewhope/qbittorrent-trackers-updater:latest
     container_name: qbittorrent_trackers_updater
     env_file:
       - .env.qbittorrent_trackers_updater
@@ -44,7 +44,7 @@ If you’re not using a VPN container like gluetun, just connect it to your main
 ```yaml
 services:
   qbittorrent_trackers_updater:
-    image: ghcr.io/greatnewhope/docker-qbittorrent-trackers-injector:latest
+    image: ghcr.io/greatnewhope/qbittorrent-trackers-updater:latest
     container_name: qbittorrent_trackers_updater
     env_file:
       - .env.qbittorrent_trackers_updater
