@@ -1,8 +1,9 @@
 # qBittorrent Trackers Updater – Dockerized Service
-![Docker Image Size](https://img.shields.io/docker/image-size/ghcr.io/greatnewhope/qbittorrent-trackers-updater/latest)
-![GitHub package](https://img.shields.io/github/v/release/greatnewhope/qbittorrent-trackers-updater?label=release)
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/greatnewhope/qbittorrent-trackers-updater/publish.yml?branch=main&label=build)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+![Docker Image Size](https://img.shields.io/docker/image-size/ghcr.io/greatnewhope/qbittorrent-trackers-updater/latest?logo=docker&style=flat-square)
+![GitHub Package](https://img.shields.io/github/v/release/greatnewhope/qbittorrent-trackers-updater?label=release&style=flat-square)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/greatnewhope/qbittorrent-trackers-updater/publish.yml?branch=main&label=build&style=flat-square)
+![GHCR](https://img.shields.io/badge/GHCR-Public-blue?logo=github&style=flat-square)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)
 
 🚀 This container runs [`AddqBittorrentTrackers.sh`](https://github.com/Jorman/Scripts) on a schedule to ensure **all your public torrents** in qBittorrent are updated with the **latest public trackers** from [`ngosang/trackerslist`](https://github.com/ngosang/trackerslist).
 
