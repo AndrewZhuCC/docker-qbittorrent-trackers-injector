@@ -22,7 +22,7 @@ jobs:
 
       - name: 🏗️ Build Docker image
         run: |
-          docker build -t ghcr.io/greatnewhope/qbittorrent-trackers-updater:latest .
+          docker build -t ghcr.io/greatnewhope/qbittorrent-trackers-updater:latest ./qbittorrent-trackers-updater
 
       - name: 📤 Push Docker image
         run: |
