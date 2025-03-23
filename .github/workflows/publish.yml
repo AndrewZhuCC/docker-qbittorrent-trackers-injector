@@ -22,10 +22,8 @@ jobs:
 
       - name: 🏗️ Build Docker image
         run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/docker-qbittorrent-trackers-injector:latest
-          docker build -t $IMAGE_NAME .
+          docker build -t ghcr.io/greatnewhope/qbittorrent-trackers-updater:latest .
 
       - name: 📤 Push Docker image
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/docker-qbittorrent-trackers-injector:latest
-
+          docker push ghcr.io/greatnewhope/qbittorrent-trackers-updater:latest
