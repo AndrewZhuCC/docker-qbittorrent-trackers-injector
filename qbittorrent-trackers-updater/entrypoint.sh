@@ -2,6 +2,18 @@
 
 set -e
 
+# Fail hard if old environment variable names are being used
+if [[ -n "$QBT_HOST" || -n "$QBT_PORT" ]]; then
+  echo "[ERROR] Detected use of deprecated environment variables QBT_HOST and/or QBT_PORT." >&2
+  echo "[ERROR] This script no longer supports these variables." >&2
+  echo "[ERROR] Please use the new variables QBT_HOSTS and QBT_PORTS instead." >&2
+  echo "[ERROR] These env vars will contain one or more qBittorrent hosts. Example:" >&2
+  echo "[ERROR]   QBT_HOSTS=http://localhost,http://192.168.1.42" >&2
+  echo "[ERROR]   QBT_PORTS=8080,8081" >&2
+  echo "" >&2
+  exit 1
+fi
+
 # Helper function to update config in-place
 update_config() {
   local host="$1"
