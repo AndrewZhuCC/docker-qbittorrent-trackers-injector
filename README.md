@@ -17,6 +17,7 @@ This container **actively updates existing torrents** using the qBittorrent API 
 
 - 🧠 **Automatically updates existing torrents** with new trackers
 - 🌍 Supports **multiple qBittorrent instances** via `QBT_HOSTS` and `QBT_PORTS`
+- ⚙️ (Optional) **Also updates** qBittorrent's default setting for appending trackers to new downloads
 - 🐳 Fully compatible with `linuxserver/qbittorrent`
 - 🔒 Supports both **authenticated** and **auth-bypassed** WebUI setups
 - 🔎 Skips **private torrents**
@@ -78,9 +79,13 @@ QBT_AUTH_BYPASS=false
 
 # Interval in seconds between runs (default is 7200 = 2 hours)
 INTERVAL_SECONDS=7200
+
+# Optional: also update qBittorrent's "add_trackers" config with latest public trackers
+UPDATE_DEFAULT_TRACKERS=true
 ```
 
 > 🔁 The script loops through each qBittorrent instance and injects updated trackers.
+> ✍️ If `UPDATE_DEFAULT_TRACKERS=true`, the `"Automatically add these trackers to new downloads"` setting will be updated using the same list.
 
 ---
 
