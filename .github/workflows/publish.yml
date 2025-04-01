@@ -3,7 +3,7 @@ name: Publish Docker image to GHCR
 on:
   push:
     branches:
-      - main  # or 'master', if that's your default branch
+      - main
 
 jobs:
   build-and-push:

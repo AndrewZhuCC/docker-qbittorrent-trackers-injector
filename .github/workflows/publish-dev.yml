@@ -1,0 +1,29 @@
+name: Publish Dev Docker Image
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build-and-push-dev:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: 🧾 Checkout repo
+        uses: actions/checkout@v4
+
+      - name: 🔐 Log in to GitHub Container Registry (GHCR)
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: 🏗️ Build Docker image (dev tag)
+        run: |
+          docker build -t ghcr.io/greatnewhope/qbittorrent-trackers-updater:dev ./qbittorrent-trackers-updater
+
+      - name: 📤 Push Docker image (dev tag)
+        run: |
+          docker push ghcr.io/greatnewhope/qbittorrent-trackers-updater:dev

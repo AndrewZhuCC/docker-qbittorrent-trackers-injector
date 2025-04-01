@@ -16,6 +16,7 @@ This container **actively updates existing torrents** using the qBittorrent API 
 ## ✅ Features
 
 - 🧠 **Automatically updates existing torrents** with new trackers
+- 🌍 Supports **multiple qBittorrent instances** via `QBT_HOSTS` and `QBT_PORTS`
 - 🐳 Fully compatible with `linuxserver/qbittorrent`
 - 🔒 Supports both **authenticated** and **auth-bypassed** WebUI setups
 - 🔎 Skips **private torrents**
@@ -25,6 +26,8 @@ This container **actively updates existing torrents** using the qBittorrent API 
 ---
 
 ## 📦 Docker Compose Example
+
+If you're using a VPN container like `gluetun`, run the updater in the same network namespace:
 
 ```yaml
 services:
@@ -37,9 +40,7 @@ services:
     restart: unless-stopped
 ```
 
-This container will reuse the network of `gluetun`, so it must be available under that name.
-
-If you’re not using a VPN container like gluetun, just connect it to your main Docker network:
+If you're **not** using a VPN container:
 
 ```yaml
 services:
@@ -54,25 +55,32 @@ services:
 
 networks:
   net:
-    external: true  # or define as internal if needed
+    external: true
 ```
-
 
 ---
 
 ## ⚙️ Environment Variables
 
-Create a `.env.qbittorrent_trackers_updater` file with:
+Create a `.env.qbittorrent_trackers_updater` like this:
 
 ```dotenv
-QBT_HOST=http://localhost
-QBT_PORT=8080
+# List of qBittorrent hosts and ports (comma-separated)
+QBT_HOSTS=http://localhost,http://192.168.1.42
+QBT_PORTS=8080,8081
+
+# Optional: if not using bypass auth
 QBT_USERNAME=admin
 QBT_PASSWORD=adminadmin
-INTERVAL_SECONDS=3600
+
+# Set to true if using qBittorrent's "Bypass authentication for localhost"
+QBT_AUTH_BYPASS=false
+
+# Interval in seconds between runs (default is 7200 = 2 hours)
+INTERVAL_SECONDS=7200
 ```
 
-> ✅ If you use **auth bypass** in qBittorrent (`Bypass authentication for clients on localhost`), you can leave `QBT_USERNAME` and `QBT_PASSWORD` empty.
+> 🔁 The script loops through each qBittorrent instance and injects updated trackers.
 
 ---
 
@@ -83,8 +91,10 @@ If you're using the `linuxserver/qbittorrent` container, and you've enabled:
 > ⚙️ Settings → Web UI → “Bypass authentication for clients on localhost”
 
 Then:
+
 - Set `QBT_USERNAME=` and `QBT_PASSWORD=`
-- The script will skip login and directly talk to the API
+- And set `QBT_AUTH_BYPASS=true`
+- The script will skip the login step and go straight to tracker injection
 
 ---
 
@@ -98,8 +108,8 @@ Then:
 
 - Script by [Jorman](https://github.com/Jorman/Scripts)
 - Tracker lists by [ngosang](https://github.com/ngosang/trackerslist)
-- Original Docker concept and auth tips inspired by [`claabs/qbittorrent-tracker-updater`](https://github.com/claabs/qbittorrent-tracker-updater)
+- Original Docker wrapper idea from [`claabs/qbittorrent-tracker-updater`](https://github.com/claabs/qbittorrent-tracker-updater)
 
 ---
 
-Feel free to contribute or open an issue if you find a bug or want to improve something!
+Feel free to open an issue or contribute if you want to help make it better!
