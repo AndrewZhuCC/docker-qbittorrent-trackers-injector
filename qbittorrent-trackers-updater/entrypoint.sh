@@ -14,47 +14,8 @@ if [[ -n "$QBT_HOST" || -n "$QBT_PORT" ]]; then
   exit 1
 fi
 
-# Parse host list into an array
-IFS="," read -r -a HOSTS <<< "$QBT_HOSTS"
-IFS="," read -r -a PORTS <<< "$QBT_PORTS"
-
-# Auth helper (returns cookie)
-get_cookie() {
-  local host="$1"
-  local port="$2"
-  local username="$3"
-  local password="$4"
-
-  if [ "$QBT_AUTH_BYPASS" = "true" ]; then
-    echo ""  # No auth cookie
-  else
-    curl --silent --fail --show-error \
-      --cookie-jar - \
-      --data "username=$username&password=$password" \
-      "$host:$port/api/v2/auth/login"
-  fi
-}
-
-# Update default trackers config via API
-set_default_trackers() {
-  local host="$1"
-  local port="$2"
-  local cookie="$3"
-
-  echo "[INFO] Fetching latest tracker list for $host:$port"
-  TRACKERS=$(curl -fsSL https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt)
-  TRACKERS=$(echo "$TRACKERS" | sed '/^$/d' | sort -u | tr '\n' '\\n')
-
-  echo "[INFO] Setting 'add_trackers' qBittorrent preference"
-  curl --fail --silent --show-error \
-    --cookie <(echo "$cookie") \
-    --header "Content-Type: application/json" \
-    --data "{\"add_trackers\":\"$TRACKERS\"}" \
-    "$host:$port/api/v2/app/setPreferences" || echo "[WARN] Failed to set default trackers on $host:$port"
-}
-
-# Update script config on each loop
-update_script_config() {
+# Helper function to update config in-place
+update_config() {
   local host="$1"
   local port="$2"
   local username="$3"
@@ -73,23 +34,63 @@ update_script_config() {
   fi
 }
 
-# Main loop
+# Function to update qBittorrent default setting for new downloads
+update_add_trackers_setting() {
+  local host="$1"
+  local port="$2"
+  local username="$3"
+  local password="$4"
+  local auth_bypass="$5"
+
+  local full_url="${host}:${port}"
+  local cookie_file="/tmp/cookies.txt"
+
+  echo "[INFO] Fetching live tracker list..."
+  tracker_list=$(
+    curl -s https://newtrackon.com/api/stable && echo &&
+    curl -s https://trackerslist.com/best.txt && echo &&
+    curl -s https://trackerslist.com/http.txt && echo &&
+    curl -s https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt
+  )
+
+  tracker_list=$(echo -e "$tracker_list" | sort -u)
+
+  if [ "$auth_bypass" = "true" ]; then
+    echo "[INFO] Skipping login due to auth bypass"
+  else
+    echo "[INFO] Logging in to $full_url to set default trackers..."
+    curl --fail --silent --show-error \
+      --cookie-jar "$cookie_file" \
+      --cookie "$cookie_file" \
+      --header "Referer: $full_url" \
+      --data "username=$username&password=$password" \
+      "$full_url/api/v2/auth/login" > /dev/null
+  fi
+
+  echo "[INFO] Setting 'add_trackers' qBittorrent preference"
+  json_string=$(jq -n --arg trackers "$tracker_list" '{add_trackers: $trackers}')
+
+  curl --fail --silent --show-error \
+    --cookie-jar "$cookie_file" \
+    --cookie "$cookie_file" \
+    --data-urlencode "json=$json_string" \
+    "$full_url/api/v2/app/setPreferences" || echo "[WARN] Failed to set default trackers on $full_url"
+}
+
+# Parse host list into an array
+IFS="," read -r -a HOSTS <<< "$QBT_HOSTS"
+IFS="," read -r -a PORTS <<< "$QBT_PORTS"
+
+# Run on a loop
 while true; do
   echo "[INFO] Updating qBittorrent trackers at $(date)"
 
   for i in "${!HOSTS[@]}"; do
-    HOST="${HOSTS[$i]}"
-    PORT="${PORTS[$i]}"
-    echo "[INFO] Updating host $HOST:$PORT"
+    echo "[INFO] Updating host ${HOSTS[$i]}:${PORTS[$i]}"
+    update_config "${HOSTS[$i]}" "${PORTS[$i]}" "$QBT_USERNAME" "$QBT_PASSWORD" "$QBT_AUTH_BYPASS"
+    bash /AddqBittorrentTrackers.sh -a || echo "[WARN] Failed updating ${HOSTS[$i]}"
 
-    update_script_config "$HOST" "$PORT" "$QBT_USERNAME" "$QBT_PASSWORD" "$QBT_AUTH_BYPASS"
-
-    bash /AddqBittorrentTrackers.sh -a || echo "[WARN] Failed updating $HOST"
-
-    if [ "$UPDATE_DEFAULT_TRACKERS" = "true" ]; then
-      COOKIE=$(get_cookie "$HOST" "$PORT" "$QBT_USERNAME" "$QBT_PASSWORD")
-      set_default_trackers "$HOST" "$PORT" "$COOKIE"
-    fi
+    update_add_trackers_setting "${HOSTS[$i]}" "${PORTS[$i]}" "$QBT_USERNAME" "$QBT_PASSWORD" "$QBT_AUTH_BYPASS"
   done
 
   echo "[INFO] Sleeping for ${INTERVAL_SECONDS}s..."
