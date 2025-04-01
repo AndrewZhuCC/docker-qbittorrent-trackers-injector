@@ -14,8 +14,47 @@ if [[ -n "$QBT_HOST" || -n "$QBT_PORT" ]]; then
   exit 1
 fi
 
-# Helper function to update config in-place
-update_config() {
+# Parse host list into an array
+IFS="," read -r -a HOSTS <<< "$QBT_HOSTS"
+IFS="," read -r -a PORTS <<< "$QBT_PORTS"
+
+# Auth helper (returns cookie)
+get_cookie() {
+  local host="$1"
+  local port="$2"
+  local username="$3"
+  local password="$4"
+
+  if [ "$QBT_AUTH_BYPASS" = "true" ]; then
+    echo ""  # No auth cookie
+  else
+    curl --silent --fail --show-error \
+      --cookie-jar - \
+      --data "username=$username&password=$password" \
+      "$host:$port/api/v2/auth/login"
+  fi
+}
+
+# Update default trackers config via API
+set_default_trackers() {
+  local host="$1"
+  local port="$2"
+  local cookie="$3"
+
+  echo "[INFO] Fetching latest tracker list for $host:$port"
+  TRACKERS=$(curl -fsSL https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt)
+  TRACKERS=$(echo "$TRACKERS" | sed '/^$/d' | sort -u | tr '\n' '\\n')
+
+  echo "[INFO] Setting 'add_trackers' qBittorrent preference"
+  curl --fail --silent --show-error \
+    --cookie <(echo "$cookie") \
+    --header "Content-Type: application/json" \
+    --data "{\"add_trackers\":\"$TRACKERS\"}" \
+    "$host:$port/api/v2/app/setPreferences" || echo "[WARN] Failed to set default trackers on $host:$port"
+}
+
+# Update script config on each loop
+update_script_config() {
   local host="$1"
   local port="$2"
   local username="$3"
@@ -34,22 +73,26 @@ update_config() {
   fi
 }
 
-# Parse host list into an array
-IFS="," read -r -a HOSTS <<< "$QBT_HOSTS"
-IFS="," read -r -a PORTS <<< "$QBT_PORTS"
-
-# Run on a loop
+# Main loop
 while true; do
   echo "[INFO] Updating qBittorrent trackers at $(date)"
 
   for i in "${!HOSTS[@]}"; do
-    echo "[INFO] Updating host ${HOSTS[$i]}:${PORTS[$i]}"
-    update_config "${HOSTS[$i]}" "${PORTS[$i]}" "$QBT_USERNAME" "$QBT_PASSWORD" "$QBT_AUTH_BYPASS"
-    bash /AddqBittorrentTrackers.sh -a || echo "[WARN] Failed updating ${HOSTS[$i]}"
+    HOST="${HOSTS[$i]}"
+    PORT="${PORTS[$i]}"
+    echo "[INFO] Updating host $HOST:$PORT"
+
+    update_script_config "$HOST" "$PORT" "$QBT_USERNAME" "$QBT_PASSWORD" "$QBT_AUTH_BYPASS"
+
+    bash /AddqBittorrentTrackers.sh -a || echo "[WARN] Failed updating $HOST"
+
+    if [ "$UPDATE_DEFAULT_TRACKERS" = "true" ]; then
+      COOKIE=$(get_cookie "$HOST" "$PORT" "$QBT_USERNAME" "$QBT_PASSWORD")
+      set_default_trackers "$HOST" "$PORT" "$COOKIE"
+    fi
   done
 
   echo "[INFO] Sleeping for ${INTERVAL_SECONDS}s..."
   sleep "${INTERVAL_SECONDS:-7200}"
-
   echo ""
 done
