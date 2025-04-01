@@ -42,24 +42,39 @@ update_add_trackers_setting() {
   local password="$4"
   local auth_bypass="$5"
 
-  echo "[INFO] Setting 'add_trackers' qBittorrent preference"
+  local full_url="${host}:${port}"
+  local cookie_file="/tmp/cookies.txt"
 
-  # Log in to qBittorrent and get cookie
+  echo "[INFO] Fetching live tracker list..."
+  tracker_list=$(
+    curl -s https://newtrackon.com/api/stable && echo &&
+    curl -s https://trackerslist.com/best.txt && echo &&
+    curl -s https://trackerslist.com/http.txt && echo &&
+    curl -s https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt
+  )
+
+  tracker_list=$(echo -e "$tracker_list" | sort -u)
+
   if [ "$auth_bypass" = "true" ]; then
-    cookie=$(curl -s -c - "${host}:${port}/api/v2/auth/login")
+    echo "[INFO] Skipping login due to auth bypass"
   else
-    cookie=$(curl -s -c - --data "username=${username}&password=${password}" "${host}:${port}/api/v2/auth/login")
+    echo "[INFO] Logging in to $full_url to set default trackers..."
+    curl --fail --silent --show-error \
+      --cookie-jar "$cookie_file" \
+      --cookie "$cookie_file" \
+      --header "Referer: $full_url" \
+      --data "username=$username&password=$password" \
+      "$full_url/api/v2/auth/login" > /dev/null
   fi
 
-  # Download tracker list and format it with double newlines
-  trackers_list=$(curl -s https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt)
-  formatted_trackers=$(echo "$trackers_list" | sed '/^\s*$/d' | awk 'ORS="\n\n"' | sed 's/\n*$//')
+  echo "[INFO] Setting 'add_trackers' qBittorrent preference"
+  json_string=$(jq -n --arg trackers "$tracker_list" '{add_trackers: $trackers}')
 
-  # Push it into preferences
-  curl -s -f -X POST \
-    --data-urlencode "add_trackers=${formatted_trackers}" \
-    --cookie-jar - \
-    "${host}:${port}/api/v2/app/setPreferences" || echo "[WARN] Failed to set default trackers on ${host}:${port}"
+  curl --fail --silent --show-error \
+    --cookie-jar "$cookie_file" \
+    --cookie "$cookie_file" \
+    --data-urlencode "json=$json_string" \
+    "$full_url/api/v2/app/setPreferences" || echo "[WARN] Failed to set default trackers on $full_url"
 }
 
 # Parse host list into an array
