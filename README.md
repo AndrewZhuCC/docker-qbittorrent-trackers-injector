@@ -105,7 +105,7 @@ Then:
 
 ## 🧊 Future Plans
 
-- Healthcheck + more logs
+- Reuse tracker list from inside AddqBittorrentTrackers.sh file, instead of hammering the servers.
 
 ---
 
