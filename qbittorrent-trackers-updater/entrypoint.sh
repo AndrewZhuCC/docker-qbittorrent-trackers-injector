@@ -5,7 +5,6 @@ set -e
 # Fail hard if old environment variable names are being used
 if [[ -n "$QBT_HOST" || -n "$QBT_PORT" ]]; then
   echo "[ERROR] Detected use of deprecated environment variables QBT_HOST and/or QBT_PORT." >&2
-  echo "[ERROR] This script no longer supports these variables." >&2
   echo "[ERROR] Please use the new variables QBT_HOSTS and QBT_PORTS instead." >&2
   echo "[ERROR] These env vars will contain one or more qBittorrent hosts. Example:" >&2
   echo "[ERROR]   QBT_HOSTS=http://localhost,http://192.168.1.42" >&2
@@ -41,40 +40,36 @@ update_add_trackers_setting() {
   local username="$3"
   local password="$4"
   local auth_bypass="$5"
+  local tracker_list="$6"
 
   local full_url="${host}:${port}"
-  local cookie_file="/tmp/cookies.txt"
-
-  echo "[INFO] Fetching live tracker list..."
-  tracker_list=$(
-    curl -s https://newtrackon.com/api/stable && echo &&
-    curl -s https://trackerslist.com/best.txt && echo &&
-    curl -s https://trackerslist.com/http.txt && echo &&
-    curl -s https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt
-  )
-
-  tracker_list=$(echo -e "$tracker_list" | sort -u)
+  local cookie_file="/tmp/cookies_${port}.txt"
 
   if [ "$auth_bypass" = "true" ]; then
-    echo "[INFO] Skipping login due to auth bypass"
+    echo "[INFO] Skipping login to $full_url due to auth bypass"
   else
     echo "[INFO] Logging in to $full_url to set default trackers..."
-    curl --fail --silent --show-error \
-      --cookie-jar "$cookie_file" \
-      --cookie "$cookie_file" \
-      --header "Referer: $full_url" \
-      --data "username=$username&password=$password" \
-      "$full_url/api/v2/auth/login" > /dev/null
+    if ! curl --fail --silent --show-error \
+        --cookie-jar "$cookie_file" \
+        --cookie "$cookie_file" \
+        --header "Referer: $full_url" \
+        --data "username=$username&password=$password" \
+        "$full_url/api/v2/auth/login" > /dev/null; then
+      echo "[WARN] Failed to login to $full_url"
+      return
+    fi
   fi
 
   echo "[INFO] Setting 'add_trackers' qBittorrent preference"
   json_string=$(jq -n --arg trackers "$tracker_list" '{add_trackers: $trackers}')
 
-  curl --fail --silent --show-error \
+  if ! curl --fail --silent --show-error \
     --cookie-jar "$cookie_file" \
     --cookie "$cookie_file" \
     --data-urlencode "json=$json_string" \
-    "$full_url/api/v2/app/setPreferences" || echo "[WARN] Failed to set default trackers on $full_url"
+    "$full_url/api/v2/app/setPreferences"; then
+    echo "[WARN] Failed to set default trackers on $full_url"
+  fi
 }
 
 # Parse host list into an array
@@ -85,12 +80,27 @@ IFS="," read -r -a PORTS <<< "$QBT_PORTS"
 while true; do
   echo "[INFO] Updating qBittorrent trackers at $(date)"
 
+  echo "[INFO] Fetching tracker list..."
+  TRACKER_LIST=$(
+    curl -s https://newtrackon.com/api/stable && echo &&
+    curl -s https://trackerslist.com/best.txt && echo &&
+    curl -s https://trackerslist.com/http.txt && echo &&
+    curl -s https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt
+  )
+  TRACKER_LIST=$(echo -e "$TRACKER_LIST" | sort -u)
+
   for i in "${!HOSTS[@]}"; do
     echo "[INFO] Updating host ${HOSTS[$i]}:${PORTS[$i]}"
-    update_config "${HOSTS[$i]}" "${PORTS[$i]}" "$QBT_USERNAME" "$QBT_PASSWORD" "$QBT_AUTH_BYPASS"
-    bash /AddqBittorrentTrackers.sh -a || echo "[WARN] Failed updating ${HOSTS[$i]}"
+    if ! update_config "${HOSTS[$i]}" "${PORTS[$i]}" "$QBT_USERNAME" "$QBT_PASSWORD" "$QBT_AUTH_BYPASS"; then
+      echo "[WARN] Failed to update config for ${HOSTS[$i]}:${PORTS[$i]}"
+      continue
+    fi
 
-    update_add_trackers_setting "${HOSTS[$i]}" "${PORTS[$i]}" "$QBT_USERNAME" "$QBT_PASSWORD" "$QBT_AUTH_BYPASS"
+    if ! bash /AddqBittorrentTrackers.sh -a; then
+      echo "[WARN] Failed updating trackers for ${HOSTS[$i]}:${PORTS[$i]}"
+    fi
+
+    update_add_trackers_setting "${HOSTS[$i]}" "${PORTS[$i]}" "$QBT_USERNAME" "$QBT_PASSWORD" "$QBT_AUTH_BYPASS" "$TRACKER_LIST"
   done
 
   echo "[INFO] Sleeping for ${INTERVAL_SECONDS}s..."
