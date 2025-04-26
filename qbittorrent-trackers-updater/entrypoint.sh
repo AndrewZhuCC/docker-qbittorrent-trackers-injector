@@ -88,6 +88,14 @@ while true; do
     curl -s https://raw.githubusercontent.com/ngosang/trackerslist/master/trackers_best.txt
   )
   TRACKER_LIST=$(echo -e "$TRACKER_LIST" | sort -u)
+  echo "$TRACKER_LIST" > /trackers_list.txt
+  export TRACKER_LIST_FILE="/trackers_list.txt"
+
+  if [[ "$DEBUG" == "true" ]]; then
+      echo "[DEBUG] First 10 trackers:"
+      head -n 10 /trackers_list.txt
+      echo "[DEBUG] Total trackers: $(wc -l < /trackers_list.txt)"
+  fi
 
   for i in "${!HOSTS[@]}"; do
     echo "[INFO] Updating host ${HOSTS[$i]}:${PORTS[$i]}"
