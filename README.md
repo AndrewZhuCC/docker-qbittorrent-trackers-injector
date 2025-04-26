@@ -82,6 +82,9 @@ INTERVAL_SECONDS=7200
 
 # Optional: also update qBittorrent's "add_trackers" config with latest public trackers
 UPDATE_DEFAULT_TRACKERS=true
+
+# Optional: enable debug logs
+DEBUG=true
 ```
 
 > 🔁 The script loops through each qBittorrent instance and injects updated trackers.
@@ -105,7 +108,7 @@ Then:
 
 ## 🧊 Future Plans
 
-- Reuse tracker list from inside AddqBittorrentTrackers.sh file, instead of hammering the servers.
+- Keep improving the service from user feedback.
 
 ---
 
