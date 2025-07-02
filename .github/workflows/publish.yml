@@ -30,8 +30,7 @@ jobs:
 
       - name: 🏗️ Build Docker image
         run: |
-          docker buildx build --platform linux/arm64,linux/amd64 -t ghcr.io/andrewzhucc/qbittorrent-trackers-updater:latest ./qbittorrent-trackers-updater
-
-      - name: 📤 Push Docker image
-        run: |
-          docker push ghcr.io/andrewzhucc/qbittorrent-trackers-updater:latest
+          docker buildx build \
+            --platform linux/arm64,linux/amd64 \
+            -t ghcr.io/andrewzhucc/qbittorrent-trackers-updater:latest \
+            --push ./qbittorrent-trackers-updater
