@@ -17,13 +17,17 @@ jobs:
       - name: 🧾 Checkout repo
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        run: |
+          docker buildx create --use
+
       - name: 🔐 Log in to GHCR
         run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: 🏗️ Build Docker image
         run: |
-          docker build -t ghcr.io/greatnewhope/qbittorrent-trackers-updater:latest ./qbittorrent-trackers-updater
+          docker buildx build --platform linux/arm64,linux/amd64 -t ghcr.io/AndrewZhuCC/qbittorrent-trackers-updater:latest ./qbittorrent-trackers-updater
 
       - name: 📤 Push Docker image
         run: |
-          docker push ghcr.io/greatnewhope/qbittorrent-trackers-updater:latest
+          docker push ghcr.io/AndrewZhuCC/qbittorrent-trackers-updater:latest
